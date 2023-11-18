@@ -8,7 +8,7 @@
 //Hash item HI
 typedef struct HI {
   char *key;
-  unsigned int *count;
+  unsigned int count;
   struct HI *next;
 } HI;
 
@@ -33,9 +33,9 @@ unsigned int hash(const char *key){
 
 //Create Table
 HT *create_hash_table(){
-  HT *hash_table = malloc(sizeof(HT) * 1);
+  HT *hash_table = (HT*)malloc(sizeof(HT) * 1);
 
-  hash_table->item = malloc(sizeof(HI*) * TABLE_SIZE);
+  hash_table->item = (HI**)malloc(sizeof(HI*) * TABLE_SIZE);
 
   int i = 0;
   for(; i < TABLE_SIZE; i++){
@@ -46,11 +46,10 @@ HT *create_hash_table(){
 }
 
 //create pair
-HI *hash_item_pair(const char *key, unsigned int *value){
-  HI * hash_item = malloc(sizeof(HI) * 1);
-  hash_item->key = malloc(strlen(key) +1);
-  hash_item->count = malloc(sizeof(value));
-  strcpy(hash_item->key, key);
+HI *hash_item_pair(const char *key, unsigned int value){
+  HI * hash_item = (HI*)malloc(sizeof(HI) * 1);
+  hash_item->key = malloc(strlen(key) + 1);
+  hash_item->key = strdup(key);
   hash_item->count = value;
   hash_item->next = NULL;
 
@@ -60,16 +59,14 @@ HI *hash_item_pair(const char *key, unsigned int *value){
 //set item
 void hash_table_set(HT *hash_table, const char *key){
   unsigned int index = hash(key);
-  unsigned int *count;
-  *count = 1;
   HI *hash_item = hash_table->item[index];
 
   if (hash_item == NULL){
     //primeira ocorrencia da palavra count = 1;
-    hash_table->item[index] = hash_item_pair(key, count);
+    hash_table->item[index] = hash_item_pair(key, 1);
   }
 
-  HI *prev;
+  HI *prev = (HI*)malloc(sizeof(HI) * 1);
 
   while(hash_item != NULL){
     if(strcmp(hash_item->key, key) == 0){
@@ -80,7 +77,7 @@ void hash_table_set(HT *hash_table, const char *key){
     hash_item = prev->next; 
   }
 
-  prev->next = hash_item_pair(key, count);
+  prev->next = hash_item_pair(key, 1);
 }
 
 unsigned int hash_table_get(HT *hash_table, const char *key){
@@ -94,7 +91,7 @@ unsigned int hash_table_get(HT *hash_table, const char *key){
 
   while(hash_item != NULL){
     if(strcmp(hash_item->key, key) == 0){
-      return *hash_item->count;
+      return hash_item->count;
     }
     hash_item = hash_item->next;
   }
@@ -130,6 +127,7 @@ int main(int argc, char const *argv[])
 
   //Searching for number of ocurrencies of word in file
   if(strcmp(argv[1], freq_word) == 0){
+
     //Getting parameters
     const char *word_to_find = tolowerstr(argv[2]);
     const char *file_name = argv[3];
@@ -140,7 +138,16 @@ int main(int argc, char const *argv[])
     unsigned int i = 0;
 
     HT *hash_table = create_hash_table();
+    // HI *hash_item = hash_item_pair(word_to_find, 1);
+    // printf("%s | %d\n", hash_item->key, hash_item->count);
 
+    // hash_table->item[0] = hash_item;
+    // printf("%s | %d\n", hash_table->item[0]->key, hash_table->item[0]->count);
+
+    // printf("hash %d", hash(word_to_find));
+    // printf("%p", hash_table->item[hash(word_to_find)]);
+
+    // hash_table_set(hash_table, word_to_find);
     //setting file
     FILE *file = fopen(file_name, "r");
 
@@ -158,8 +165,8 @@ int main(int argc, char const *argv[])
         } else if (i > 1) {
             word[i] = '\0'; // Null-terminate the word
             hash_table_set(hash_table, word);
-            //strcpy(wordsArray[wordCount], word);
-            //wordCount++;
+            // strcpy(wordsArray[wordCount], word);
+            // wordCount++;
             i = 0; // Reset the index for the next word
         } else if (isSeparator(ch)) {
             // If we encounter a space or hyphen, treat it as a separator
@@ -171,11 +178,11 @@ int main(int argc, char const *argv[])
         }
     }
 
-    //printf("Palavra: %s | ocorrencias: %d", word_to_find, hash_table_get(hash_table, word_to_find));
+    printf("Palavra: %s | ocorrencias: %d\n", word_to_find, hash_table_get(hash_table, word_to_find));
 
-    // // Close the file
-    // fclose(file);
-
+    // Close the file
+    fclose(file);
+    free(hash_table);
     // // Display the words
     // printf("Words in the file (ignoring words with less than 2 characters and punctuation):\n");
     // for (int j = 0; j < wordCount; j++) {
