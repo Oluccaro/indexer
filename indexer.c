@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #define TABLE_SIZE 1000000
 #define MAX_WORD_LENGTH 40
@@ -222,6 +223,7 @@ int main(int argc, char const *argv[])
   unsigned int i = 0;
   char *freq_word = "--freq-word";
   char *freq = "--freq";
+  char *search = "--search";
 
   //Searching for number of ocurrencies of word in file
   if(strcmp(argv[1], freq_word) == 0){
@@ -305,11 +307,13 @@ int main(int argc, char const *argv[])
 	{
 		int j;
 		FileRelevance relevanceArray[100];
-		const char *termo = tolowerstr(argv[2]);
+		const char *termo = to_lower_str(argv[2]);
 		double TF_value, IDF_value, TFIDF_value;
 		double term_occurrences = 0;
-		double numFiles = 0;
+		int numFiles = 0;
 	
+
+		
 		for(j = 3; j <= argc; j++) 
 		{
 			
@@ -318,26 +322,36 @@ int main(int argc, char const *argv[])
 			HT *hash_table = create_hash_table();
 			hash_table = generate_hash_for_file(hash_table, argv[j]);
 			
-			double TF_value = (double)hash_table_get(hash_table, termo) / (double)hash_table->n_items;
-	
+			// calculando TF para o arquivo
+			TF_value = (double)hash_table_get_count(hash_table, termo) / (double)hash_table->n_items;
+			
+			//armazenando dados do arquivo na estrutura/array
 		    relevanceArray[numFiles].file_name = argv[j];
 		    relevanceArray[numFiles].tfidf = TF_value;
-		    relevanceArray[numFiles].term_occurrences = (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
+		    relevanceArray[numFiles].term_occurrences = (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
 		
+			//incrementando os contadores de ocorrência
 		    numFiles += 1;
-		    term_occurrences += (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
+		    term_occurrences += (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
+		    
+		    free(hash_table);
 		}
 		
-		double IDF_value = log(numFiles / term_occurrences);
+		//calculando IDF 
+		
+		IDF_value = log((double)numFiles / term_occurrences);
 
-		for (unsigned int i = 0; i < numFiles; i++) 
+		//calculando relevância para cada arquivo
+		for (i = 0; i < numFiles; i++) 
 		{
     		relevanceArray[i].tfidf *= IDF_value;
 		}
 		
+		//ordenando o array
 		qsort(relevanceArray, numFiles, sizeof(FileRelevance), compareFileRelevance);
 		
-		for (unsigned int i = 0; i < numFiles; i++) 
+		//imprimindo relevância
+		for (i = 0; i < numFiles; i++) 
 		{
     		printf("Arquivo: %s | TF-IDF: %lf\n", relevanceArray[i].file_name, relevanceArray[i].tfidf);
 		}
