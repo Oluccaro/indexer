@@ -4,20 +4,40 @@
 #include <ctype.h>
 
 #define TABLE_SIZE 1000000
-
+#define MAX_WORD_LENGTH 40
 //Hash item HI
 typedef struct HI {
   char *key;
-  unsigned int count;
+  unsigned count;
   struct HI *next;
 } HI;
 
 //Hash Table HT
 typedef struct HT {
-  HI **item;
+  HI **items;
   unsigned long int n_items;
 } HT;
 
+typedef struct array_list_of_HI{
+  HI **items;
+  unsigned int n_words;
+} array_HI;
+
+
+array_HI *create_array_list(void){
+  
+  array_HI *array_list = (array_HI *)malloc(sizeof(array_HI) * 1);
+  
+  array_list->items = (HI**)malloc(sizeof(HI*) * TABLE_SIZE);
+  
+  int i;
+
+  for(i = 0; i < TABLE_SIZE; i++){
+    array_list->items[i] = NULL;
+  }
+  array_list->n_words = 0;
+  return array_list;
+}
 //Hash function
 unsigned int hash(const char *key){
   unsigned long int value = 0;
@@ -36,11 +56,11 @@ unsigned int hash(const char *key){
 HT *create_hash_table(){
   HT *hash_table = (HT*)malloc(sizeof(HT) * 1);
 
-  hash_table->item = (HI**)malloc(sizeof(HI*) * TABLE_SIZE);
+  hash_table->items = (HI**)malloc(sizeof(HI*) * TABLE_SIZE);
 
   int i = 0;
   for(; i < TABLE_SIZE; i++){
-    hash_table->item[i] = NULL;
+    hash_table->items[i] = NULL;
   }
   hash_table->n_items = 0;
 
@@ -61,11 +81,11 @@ HI *hash_item_pair(const char *key, unsigned int value){
 //set item
 void hash_table_set(HT *hash_table, const char *key){
   unsigned int index = hash(key);
-  HI *hash_item = hash_table->item[index];
+  HI *hash_item = hash_table->items[index];
 
   if (hash_item == NULL){
     //primeira ocorrencia da palavra count = 1;
-    hash_table->item[index] = hash_item_pair(key, 1);
+    hash_table->items[index] = hash_item_pair(key, 1);
     hash_table->n_items++;
     return;
   }
@@ -84,10 +104,11 @@ void hash_table_set(HT *hash_table, const char *key){
   prev->next = hash_item_pair(key, 1);
 }
 
-unsigned int hash_table_get(HT *hash_table, const char *key){
+//Get number of ocorrencies on and hash_table, given a key
+unsigned int hash_table_get_count(HT *hash_table, const char *key){
   unsigned int index = hash(key);
 
-  HI *hash_item = hash_table->item[index];
+  HI *hash_item = hash_table->items[index];
 
   if(hash_item == NULL){
     return 0;
@@ -103,7 +124,19 @@ unsigned int hash_table_get(HT *hash_table, const char *key){
   return 0;
 }
 
-char *tolowerstr(const char *s){
+HI *hash_table_get_item(HT *hash_table, const char *key){
+  unsigned int index = hash(key);
+  HI *hash_item = hash_table->items[index];
+  while(hash_item != NULL){
+    if(strcmp(hash_item->key, key) == 0){
+      return hash_item;
+    }
+    hash_item = hash_item->next;
+  }
+  return NULL;
+}
+// Transform string to lowercase
+char *to_lower_str(const char *s){
   char *lower_s = (char *)malloc((strlen(s)+1)*sizeof(char));
   char *ls = lower_s;
   while(*s){
@@ -123,10 +156,11 @@ int is_separator(char ch) {
     return (ch == ' ' || ch == '-');
 }
 
+//Generate hash_map given a filename
 HT *generate_hash_for_file(HT *hash_table, const char *file_name){
   FILE *file = fopen(file_name, "r");
   char ch;
-  char word[40];
+  char word[MAX_WORD_LENGTH];
   int wordCount = 0;
   unsigned int i = 0;
 
@@ -141,7 +175,7 @@ HT *generate_hash_for_file(HT *hash_table, const char *file_name){
           // Convert the character to lowercase and add it to the current word
           word[i] = tolower(ch);
           i++;
-      } else if (i > 1) {
+      } else if (i > 2) {
           word[i] = '\0'; // Null-terminate the word
           hash_table_set(hash_table, word);
           // strcpy(wordsArray[wordCount], word);
@@ -161,68 +195,95 @@ HT *generate_hash_for_file(HT *hash_table, const char *file_name){
   return hash_table;
 }
 
+int HI_cmp(const void *a, const void *b){
+  int count_a = (*(HI**)a)->count;
+  int count_b = (*(HI**)b)->count;
+  int diff = (count_b - count_a);
+  return diff;
+}
+
 int main(int argc, char const *argv[])
 {
 
   unsigned int i = 0;
   char *freq_word = "--freq-word";
+  char *freq = "--freq";
 
   //Searching for number of ocurrencies of word in file
   if(strcmp(argv[1], freq_word) == 0){
-
     //Getting parameters
-    const char *word_to_find = tolowerstr(argv[2]);
+    const char *word_to_find = to_lower_str(argv[2]);
     const char *file_name = argv[3];
-    char ch;
-    char word[32];
-    char wordsArray[100000][32];
-    int wordCount = 0;
-    unsigned int i = 0;
 
     HT *hash_table = create_hash_table();
 
-    hash_table = generate_hash_for_file(hash_table, file_name);
-    // //setting file
-    // FILE *file = fopen(file_name, "r");
+    generate_hash_for_file(hash_table, file_name);
 
-    // if(file == NULL){
-    //   printf("Erro ao abrir arquivo %s", file_name);
-    //   return 0;
-    // }
-
-    // // Read the file character by character
-    // while ((ch = fgetc(file)) != EOF) {
-    //     if(isalpha(ch)) {
-    //         // Convert the character to lowercase and add it to the current word
-    //         word[i] = tolower(ch);
-    //         i++;
-    //     } else if (i > 1) {
-    //         word[i] = '\0'; // Null-terminate the word
-    //         hash_table_set(hash_table, word);
-    //         // strcpy(wordsArray[wordCount], word);
-    //         // wordCount++;
-    //         i = 0; // Reset the index for the next word
-    //     } else if (is_separator(ch)) {
-    //         // If we encounter a space or hyphen, treat it as a separator
-    //         i = 0;
-    //     }
-    //     // Ignore punctuation and reset the index for the next word
-    //     if (is_ponctuation(ch)) {
-    //         i = 0;
-    //     }
-    // }
-
-    printf("Palavra: %s | ocorrencias: %d\n", word_to_find, hash_table_get(hash_table, word_to_find));
-    // Close the file
+    printf("Palavra: %s | ocorrencias: %d\n", word_to_find, hash_table_get_count(hash_table, word_to_find));
 
     free(hash_table);
-    // // Display the words
-    // printf("Words in the file (ignoring words with less than 2 characters and punctuation):\n");
-    // for (int j = 0; j < wordCount; j++) {
-    //     printf("%s\n", wordsArray[j]);
-    // }
 
     return 0;
   }
 
+  // returning the top N words with most ocurrencies 
+  if(strcmp(argv[1], freq) == 0){
+
+    // getting parameters
+    unsigned int top_n = (unsigned int)strtol(argv[2], (char **)NULL, 10);
+    const char *file_name = argv[3];
+    unsigned int j = 0;
+    char ch;
+    char word[MAX_WORD_LENGTH];
+    array_HI *array_list = create_array_list();
+    unsigned int i = 0;
+
+    HT * hash_table = create_hash_table();
+
+    FILE *file = fopen(file_name, "r");
+  
+
+    if(file == NULL){
+      printf("Erro ao abrir arquivo %s", file_name);
+      return 0;
+    }
+
+    // Read the file character by character
+    while ((ch = fgetc(file)) != EOF) {
+      if(isalpha(ch)) {
+          // Convert the character to lowercase and add it to the current word
+          word[i] = tolower(ch);
+          i++;
+      } else if (i > 1) {
+          word[i] = '\0'; // Null-terminate the word
+          hash_table_set(hash_table, word);
+
+          if(strlen(word) > 2){
+            if(hash_table_get_count(hash_table, word) == 1){
+              array_list->items[array_list->n_words++] = hash_table_get_item(hash_table, word); 
+            }
+          }
+          i = 0; // Reset the index for the next word
+      } else if (is_separator(ch)) {
+          // If we encounter a space or hyphen, treat it as a separator
+          i = 0;
+      }
+      // Ignore punctuation and reset the index for the next word
+      if (is_ponctuation(ch)) {
+          i = 0;
+      }
+    }
+        // Close the file
+    fclose(file);
+
+    qsort(array_list->items, array_list->n_words, sizeof(HI*) , HI_cmp);  
+
+    printf("Top %d palavras com mais ocorrências no arquivo %s\n", top_n, file_name);
+    for(j=0; j < top_n; j++){
+      printf("Palavra %s -> Ocorrências %d\n", array_list->items[j]->key, array_list->items[j]->count);
+    }
+    printf("Total de palavras diferentes no arquivo %d\n", array_list->n_words);
+    free(hash_table);
+    free(array_list);
+  }
 }
