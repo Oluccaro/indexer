@@ -222,6 +222,7 @@ int main(int argc, char const *argv[])
   unsigned int i = 0;
   char *freq_word = "--freq-word";
   char *freq = "--freq";
+  char *search = "--search";
 
   //Searching for number of ocurrencies of word in file
   if(strcmp(argv[1], freq_word) == 0){
@@ -318,7 +319,7 @@ int main(int argc, char const *argv[])
 			HT *hash_table = create_hash_table();
 			hash_table = generate_hash_for_file(hash_table, argv[j]);
 			
-			double TF_value = (double)hash_table_get(hash_table, termo) / (double)hash_table->n_items;
+			TF_value = (double)hash_table_get(hash_table, termo) / (double)hash_table->n_items;
 	
 		    relevanceArray[numFiles].file_name = argv[j];
 		    relevanceArray[numFiles].tfidf = TF_value;
@@ -328,16 +329,16 @@ int main(int argc, char const *argv[])
 		    term_occurrences += (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
 		}
 		
-		double IDF_value = log(numFiles / term_occurrences);
+		IDF_value = log(numFiles / term_occurrences);
 
-		for (unsigned int i = 0; i < numFiles; i++) 
+		for (i = 0; i < numFiles; i++) 
 		{
     		relevanceArray[i].tfidf *= IDF_value;
 		}
 		
 		qsort(relevanceArray, numFiles, sizeof(FileRelevance), compareFileRelevance);
 		
-		for (unsigned int i = 0; i < numFiles; i++) 
+		for (i = 0; i < numFiles; i++) 
 		{
     		printf("Arquivo: %s | TF-IDF: %lf\n", relevanceArray[i].file_name, relevanceArray[i].tfidf);
 		}
