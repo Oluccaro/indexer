@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #define TABLE_SIZE 1000000
 #define MAX_WORD_LENGTH 40
@@ -16,6 +17,7 @@ typedef struct HI {
 typedef struct HT {
   HI **items;
   unsigned long int n_items;
+  unsigned long int total_words;
 } HT;
 
 typedef struct array_list_of_HI{
@@ -69,6 +71,7 @@ HT *create_hash_table(){
     hash_table->items[i] = NULL;
   }
   hash_table->n_items = 0;
+  hash_table->total_words = 0;
 
   return hash_table;
 }
@@ -93,6 +96,7 @@ void hash_table_set(HT *hash_table, const char *key){
     //primeira ocorrencia da palavra count = 1;
     hash_table->items[index] = hash_item_pair(key, 1);
     hash_table->n_items++;
+    hash_table->total_words++;
     return;
   }
 
@@ -107,6 +111,7 @@ void hash_table_set(HT *hash_table, const char *key){
     hash_item = prev->next; 
   }
   hash_table->n_items++;
+  hash_table->total_words++;
   prev->next = hash_item_pair(key, 1);
 }
 
@@ -306,12 +311,12 @@ int main(int argc, char const *argv[])
 	{
 		int j;
 		FileRelevance relevanceArray[100];
-		const char *termo = tolowerstr(argv[2]);
+		const char *termo = to_lower_str(argv[2]);
 		double TF_value, IDF_value, TFIDF_value;
 		double term_occurrences = 0;
-		double numFiles = 0;
+		int numFiles = 0;
 	
-		for(j = 3; j <= argc; j++) 
+		for(j = 3; j < argc; j++) 
 		{
 			
 			// criando hash table para cada arquivo
@@ -319,14 +324,14 @@ int main(int argc, char const *argv[])
 			HT *hash_table = create_hash_table();
 			hash_table = generate_hash_for_file(hash_table, argv[j]);
 			
-			TF_value = (double)hash_table_get(hash_table, termo) / (double)hash_table->n_items;
+			TF_value = (double)hash_table_get_count(hash_table, termo) / (double)hash_table->total_words;
 	
 		    relevanceArray[numFiles].file_name = argv[j];
 		    relevanceArray[numFiles].tfidf = TF_value;
-		    relevanceArray[numFiles].term_occurrences = (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
+		    relevanceArray[numFiles].term_occurrences = (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
 		
 		    numFiles += 1;
-		    term_occurrences += (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
+		    term_occurrences += (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
 		}
 		
 		IDF_value = log(numFiles / term_occurrences);
