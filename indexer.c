@@ -23,6 +23,12 @@ typedef struct array_list_of_HI{
   unsigned int n_words;
 } array_HI;
 
+typedef struct FileRelevance {
+    const char *file_name;
+    unsigned int term_occurrences;
+    double tfidf;
+} FileRelevance;
+
 
 array_HI *create_array_list(void){
   
@@ -202,6 +208,14 @@ int HI_cmp(const void *a, const void *b){
   return diff;
 }
 
+int compareFileRelevance(const void *a, const void *b) 
+{
+    const FileRelevance *fileA = (const FileRelevance *)a;
+    const FileRelevance *fileB = (const FileRelevance *)b;
+    return fileB->tfidf - fileA->tfidf;
+}
+
+
 int main(int argc, char const *argv[])
 {
 
@@ -286,4 +300,47 @@ int main(int argc, char const *argv[])
     free(hash_table);
     free(array_list);
   }
+  
+  	if(strcmp(argv[1], search) == 0) 
+	{
+		int j;
+		FileRelevance relevanceArray[100];
+		const char *termo = tolowerstr(argv[2]);
+		double TF_value, IDF_value, TFIDF_value;
+		double term_occurrences = 0;
+		double numFiles = 0;
+	
+		for(j = 3; j <= argc; j++) 
+		{
+			
+			// criando hash table para cada arquivo
+			
+			HT *hash_table = create_hash_table();
+			hash_table = generate_hash_for_file(hash_table, argv[j]);
+			
+			double TF_value = (double)hash_table_get(hash_table, termo) / (double)hash_table->n_items;
+	
+		    relevanceArray[numFiles].file_name = argv[j];
+		    relevanceArray[numFiles].tfidf = TF_value;
+		    relevanceArray[numFiles].term_occurrences = (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
+		
+		    numFiles += 1;
+		    term_occurrences += (hash_table_get(hash_table, termo) > 0) ? 1 : 0;
+		}
+		
+		double IDF_value = log(numFiles / term_occurrences);
+
+		for (unsigned int i = 0; i < numFiles; i++) 
+		{
+    		relevanceArray[i].tfidf *= IDF_value;
+		}
+		
+		qsort(relevanceArray, numFiles, sizeof(FileRelevance), compareFileRelevance);
+		
+		for (unsigned int i = 0; i < numFiles; i++) 
+		{
+    		printf("Arquivo: %s | TF-IDF: %lf\n", relevanceArray[i].file_name, relevanceArray[i].tfidf);
+		}
+		
+}
 }
