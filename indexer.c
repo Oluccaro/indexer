@@ -313,7 +313,7 @@ int main(int argc, char const *argv[])
 		FileRelevance relevanceArray[100];
 		const char *termo = to_lower_str(argv[2]);
 		double TF_value, IDF_value, TFIDF_value;
-		double term_occurrences = 0;
+		int term_occurrences = 0;
 		int numFiles = 0;
 	
 		for(j = 3; j < argc; j++) 
@@ -333,8 +333,8 @@ int main(int argc, char const *argv[])
 		    numFiles += 1;
 		    term_occurrences += (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
 		}
-		
-		IDF_value = log(numFiles / term_occurrences);
+		printf("%d - %d", numFiles, term_occurrences);
+		IDF_value = log(((double)numFiles/(double)term_occurrences));
 
 		for (i = 0; i < numFiles; i++) 
 		{
