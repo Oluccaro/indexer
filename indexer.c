@@ -29,6 +29,7 @@ typedef struct FileRelevance {
     const char *file_name;
     unsigned int term_occurrences;
     double tfidf;
+    char word [30];
 } FileRelevance;
 
 
@@ -311,42 +312,103 @@ int main(int argc, char const *argv[])
 	{
 		int j;
 		FileRelevance relevanceArray[100];
-		const char *termo = to_lower_str(argv[2]);
-		double TF_value, IDF_value, TFIDF_value;
+		char termo[30];
+		double TF_value, IDF_value;
 		double term_occurrences = 0;
 		int numFiles = 0;
+		
+		strcpy(termo, to_lower_str(argv[2]));
+		
+	    // Verifica se o termo está entre aspas duplas
+	    if (termo[0] == '"' && termo[strlen(termo) - 1] == '"') 
+		{
+	        // Remove as aspas do termo
+	    	memmove(termo, termo + 1, strlen(termo));
+        	termo[strlen(termo) - 1] = '\0';
+        	
+        	printf("%s", termo);
 	
-		for(j = 3; j < argc; j++) 
-		{
-			
-			// criando hash table para cada arquivo
-			
-			HT *hash_table = create_hash_table();
-			hash_table = generate_hash_for_file(hash_table, argv[j]);
-			
-			TF_value = (double)hash_table_get_count(hash_table, termo) / (double)hash_table->total_words;
+	        // Usa strtok para separar o termo em palavras
+	        
+	        char *token = strtok((char *)termo, " -");
+	        
+	        printf("%s", token);
 	
-		    relevanceArray[numFiles].file_name = argv[j];
-		    relevanceArray[numFiles].tfidf = TF_value;
-		    relevanceArray[numFiles].term_occurrences = (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
+	        while (token != NULL) {
+	        	
+	            double sumTFIDF = 0;
+				int sumOccurrences = 0;
+				numFiles = 0;
+			    term_occurrences = 0;
+				
+				for(j = 3; j < argc; j++) 
+				{
+					// criando hash table para cada arquivo
+					
+					HT *hash_table = create_hash_table();
+					hash_table = generate_hash_for_file(hash_table, argv[j]);
+					
+					//calcula TF
+					TF_value = (double)hash_table_get_count(hash_table, token) / (double)hash_table->total_words;
+					
+					//armazena na estrutura
+				    relevanceArray[numFiles].file_name = strdup(argv[j]);
+				    relevanceArray[numFiles].tfidf = TF_value;
+				    relevanceArray[numFiles].term_occurrences = (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
+					strcpy(relevanceArray[numFiles].word, token);
+					
+				    numFiles += 1;
+				    term_occurrences += (hash_table_get_count(hash_table, token) > 0) ? 1 : 0;
+				}
+				
+				// calcula IDF
+				IDF_value = log((double)numFiles / term_occurrences);
 		
-		    numFiles += 1;
-		    term_occurrences += (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
+				//calcula TFIDF
+				
+				for (i = 0; i < numFiles; i++) 
+				{
+		    		relevanceArray[i].tfidf *= IDF_value;
+				}
+				
+				//avança para a próxima palavra na string
+			    token = strtok(NULL, " -");
+			}
+			
+		} else {	
+		
+			for(j = 3; j < argc; j++) 
+			{
+				// criando hash table para cada arquivo
+				
+				HT *hash_table = create_hash_table();
+				hash_table = generate_hash_for_file(hash_table, argv[j]);
+				
+				TF_value = (double)hash_table_get_count(hash_table, termo) / (double)hash_table->total_words;
+		
+			    relevanceArray[numFiles].file_name = argv[j];
+			    relevanceArray[numFiles].tfidf = TF_value;
+			    relevanceArray[numFiles].term_occurrences = (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
+			
+			    numFiles += 1;
+			    term_occurrences += (hash_table_get_count(hash_table, termo) > 0) ? 1 : 0;
+			}
+			
+			IDF_value = log((double)numFiles / term_occurrences);
+	
+			for (i = 0; i < numFiles; i++) 
+			{
+	    		relevanceArray[i].tfidf *= IDF_value;
+			}
+			
+			qsort(relevanceArray, numFiles, sizeof(FileRelevance), compareFileRelevance);
+			
+			for (i = 0; i < numFiles; i++) 
+			{
+	    		printf("Arquivo: %s | TF-IDF: %lf\n", relevanceArray[i].file_name, relevanceArray[i].tfidf);
+			}
+			
 		}
 		
-		IDF_value = log(numFiles / term_occurrences);
-
-		for (i = 0; i < numFiles; i++) 
-		{
-    		relevanceArray[i].tfidf *= IDF_value;
-		}
-		
-		qsort(relevanceArray, numFiles, sizeof(FileRelevance), compareFileRelevance);
-		
-		for (i = 0; i < numFiles; i++) 
-		{
-    		printf("Arquivo: %s | TF-IDF: %lf\n", relevanceArray[i].file_name, relevanceArray[i].tfidf);
-		}
-		
-}
-}
+	}
+}	
