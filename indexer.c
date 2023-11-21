@@ -217,9 +217,16 @@ int HI_cmp(const void *a, const void *b){
 
 int compareFileRelevance(const void *a, const void *b) 
 {
-    const FileRelevance *fileA = (const FileRelevance *)a;
-    const FileRelevance *fileB = (const FileRelevance *)b;
-    return fileB->tfidf - fileA->tfidf;
+    double tfidfA = ((FileRelevance *)a)->tfidf;
+    double tfidfB = ((FileRelevance *)b)->tfidf;
+
+    if (tfidfA < tfidfB) {
+        return 1;
+    } else if (tfidfA > tfidfB) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 
@@ -328,7 +335,6 @@ int main(int argc, char const *argv[])
 
     while (token != NULL) {  	
       num_terms++;
-      printf("palavra: %s\n", token);
       int sumOccurrences = 0;
       numFiles = 0;
       term_occurrences = 0;
@@ -352,7 +358,7 @@ int main(int argc, char const *argv[])
       }
 		
       // calcula IDF
-      IDF_value = log((double)numFiles / term_occurrences)/log(10);
+      IDF_value = log10((double)numFiles / term_occurrences);
   
       //calcula TFIDF
       for (i = 0; i < numFiles; i++) 
